@@ -99,8 +99,13 @@ int main(int argc, char* argv[]) {
 
     struct imageBuffer buffer = initBuffer(&img, strcmp(mode, "gray") == 0 ? GRAY : RGB);
 
-    while (true) {
+    if (strcmp(mode, "gray") == 0) {
+
         printBuffer(&buffer);
+    } else {
+        while (true) {
+            printBuffer(&buffer);
+        }
     }
 
     return 0;
