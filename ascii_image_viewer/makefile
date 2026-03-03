@@ -2,7 +2,7 @@ CC = clang
 CFLAGS = -g  -std=c99
 
 main: main.o color.o ppm.o
-	$(CC) $(CFLAGS) main.o color.o ppm.o -o main
+	$(CC) $(CFLAGS) main.o color.o ppm.o -o ascii_image_viewer.out
 
 main.o: main.c utils.h color.h ppm.h
 	$(CC) $(CFLAGS) -c main.c
