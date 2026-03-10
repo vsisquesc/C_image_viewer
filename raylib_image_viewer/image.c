@@ -24,6 +24,7 @@ struct ImageData* loadImage(const char* filename) {
 
         fprintf(stderr, "Unsupported format");
         free(img);
+        img = NULL;
         return NULL;
 
     } else if (strcmp(extension, "ppm") == 0) {
@@ -32,16 +33,19 @@ struct ImageData* loadImage(const char* filename) {
         if (ppmImageData == NULL) {
             fprintf(stderr, "Error opening ppm file");
             free(img);
+            img = NULL;
             return NULL;
         }
         img->w = ppmImageData->w;
         img->h = ppmImageData->h;
         img->data = ppmImageData->data;
         free(ppmImageData);
+        ppmImageData = NULL;
 
     } else {
         fprintf(stderr, "Unsupported format");
         free(img);
+        img = NULL;
         return NULL;
     }
 

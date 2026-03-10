@@ -4,25 +4,38 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void skipComments(FILE* f) {
-    int c;
+static void trimSpaces(FILE* f, char* c) {
 
     do {
-        c = fgetc(f);
-    } while (isspace(c));
+        *c = fgetc(f);
+    } while (isspace(*c));
+}
+
+static void skipComments(FILE* f) {
+    char c;
+
+    // trim
+    trimSpaces(f, &c);
 
     while (c == '#') {
         while (c != '\n' && c != EOF) {
             c = fgetc(f);
         }
-        do {
-            c = fgetc(f);
-        } while (isspace(c));
+
+        trimSpaces(f, &c);
     }
 
     if (c != EOF) {
         ungetc(c, f);
     }
+}
+
+static void* error(FILE* f, struct ppmImage* img) {
+    fclose(f);
+    free(img->data);
+    free(img);
+    img = NULL;
+    return NULL;
 }
 
 struct ppmImage* loadPPM(const char* filename) {
@@ -40,53 +53,60 @@ struct ppmImage* loadPPM(const char* filename) {
 
     /* --- FORMATO --- */
     if (fscanf(f, "%2s", img->format) != 1) {
-        goto error;
+        return error(f, img);
     }
 
     if (strcmp(img->format, "P3") != 0 && strcmp(img->format, "P6") != 0) {
         fprintf(stderr, "Formato PPM no soportado\n");
-        goto error;
+        return error(f, img);
     }
 
     /* --- WIDTH / HEIGHT / DEPTH --- */
     skipComments(f);
-    if (fscanf(f, "%d", &img->w) != 1)
-        goto error;
-
-    skipComments(f);
-    if (fscanf(f, "%d", &img->h) != 1)
-        goto error;
-
-    skipComments(f);
-    if (fscanf(f, "%d", &img->depth) != 1)
-        goto error;
-
-    if (img->w <= 0 || img->h <= 0 || img->depth <= 0) {
-        goto error;
+    if (fscanf(f, "%d", &img->w) != 1) {
+        return error(f, img);
     }
 
-    fgetc(f); /* consumir whitespace */
+    skipComments(f);
+    if (fscanf(f, "%d", &img->h) != 1) {
+        return error(f, img);
+    }
+
+    skipComments(f);
+    if (fscanf(f, "%d", &img->depth) != 1) {
+        return error(f, img);
+    }
+
+    if (img->w <= 0 || img->h <= 0 || img->depth <= 0) {
+        return error(f, img);
+    }
+    skipComments(f);
 
     size_t pixels = (size_t)img->w * img->h;
-
     img->data = malloc(pixels * 3);
-    if (!img->data)
-        goto error;
+    if (!img->data) {
+        return error(f, img);
+    }
 
     /* --- DATOS --- */
     if (strcmp(img->format, "P6") == 0) {
+        // Binario
         if (fread(img->data, 3, pixels, f) != pixels) {
-            goto error;
+            return error(f, img);
         }
     } else {
+        // Texto (P3)
         for (size_t i = 0; i < pixels * 3; i++) {
             int v;
-            if (fscanf(f, "%d", &v) != 1)
-                goto error;
-            if (v < 0)
+            if (fscanf(f, "%d", &v) != 1) {
+                return error(f, img);
+            }
+            if (v < 0) {
                 v = 0;
-            if (v > img->depth)
+            }
+            if (v > img->depth) {
                 v = img->depth;
+            }
             img->data[i] = (unsigned char)v;
         }
     }
@@ -100,10 +120,4 @@ struct ppmImage* loadPPM(const char* filename) {
 
     fclose(f);
     return img;
-
-error:
-    fclose(f);
-    free(img->data);
-    free(img);
-    return NULL;
 }
